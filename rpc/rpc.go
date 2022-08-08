@@ -6,24 +6,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/cyberpoolorg/etc-stratum/util"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type RPCClient struct {
 	sync.RWMutex
-	Url         string
-	Name        string
-	sick        bool
-	sickRate    int
-	successRate int
-	client      *http.Client
+	Url          string
+	Name         string
+	sick         bool
+	sickRate     int
+	successRate  int
+	client       *http.Client
+	DebugLogging bool
 }
 
 type GetBlockReply struct {
@@ -76,6 +78,11 @@ type JSONRpcResp struct {
 	Id     *json.RawMessage       `json:"id"`
 	Result *json.RawMessage       `json:"result"`
 	Error  map[string]interface{} `json:"error"`
+}
+
+func (j *JSONRpcResp) String() string {
+	b, _ := json.Marshal(j)
+	return string(b)
 }
 
 func NewRPCClient(name, url, timeout string) *RPCClient {
@@ -239,6 +246,9 @@ func (r *RPCClient) doPost(url string, method string, params interface{}) (*JSON
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
+	if r.DebugLogging {
+		log.Printf(">>> %s %s %s %v", req.Method, req.URL, method, params)
+	}
 	resp, err := r.client.Do(req)
 	if err != nil {
 		r.markSick()
@@ -251,6 +261,13 @@ func (r *RPCClient) doPost(url string, method string, params interface{}) (*JSON
 	if err != nil {
 		r.markSick()
 		return nil, err
+	}
+	if r.DebugLogging {
+		if rpcResp.Result != nil {
+			log.Printf("<<< %s %s %s", req.Method, req.URL, string(*rpcResp.Result)[:80])
+		} else {
+			log.Printf("<<< %s %s %s", req.Method, req.URL, rpcResp.Error)
+		}
 	}
 	if rpcResp.Error != nil {
 		r.markSick()

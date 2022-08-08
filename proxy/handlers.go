@@ -66,16 +66,16 @@ func (s *ProxyServer) handleSubmitRPC(cs *Session, login, id string, params []st
 		return false, &ErrorReply{Code: -1, Message: "Malformed PoW result"}
 	}
 	t := s.currentBlockTemplate()
-	exist, validShare := s.processShare(login, id, cs.ip, t, params)
-	ok := s.policy.ApplySharePolicy(cs.ip, !exist && validShare)
+	exist, processErr := s.processShare(login, id, cs.ip, t, params)
+	ok := s.policy.ApplySharePolicy(cs.ip, !exist && processErr == nil)
 
 	if exist {
 		log.Printf("Duplicate share from %s@%s %v", login, cs.ip, params)
 		return false, &ErrorReply{Code: 22, Message: "Duplicate share"}
 	}
 
-	if !validShare {
-		log.Printf("Invalid share from %s@%s", login, cs.ip)
+	if processErr != nil {
+		log.Printf("Invalid share from %s@%s: %v", login, cs.ip, processErr)
 		// Bad shares limit reached, return error and close
 		if !ok {
 			return false, &ErrorReply{Code: 23, Message: "Invalid share"}

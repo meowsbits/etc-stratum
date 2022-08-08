@@ -116,6 +116,7 @@ func (cs *Session) handleTCPMessage(s *ProxyServer, req *StratumReq) error {
 		return cs.sendTCPResult(req.Id, reply)
 	case "eth_getWork":
 		reply, errReply := s.handleGetWorkRPC(cs)
+		log.Printf(`[stratumreq] eth_getWork %s %s %s`, cs.ip, req.Method, req.Params)
 		if errReply != nil {
 			return cs.sendTCPError(req.Id, errReply)
 		}
@@ -128,6 +129,7 @@ func (cs *Session) handleTCPMessage(s *ProxyServer, req *StratumReq) error {
 			return err
 		}
 		reply, errReply := s.handleTCPSubmitRPC(cs, req.Worker, params)
+		log.Printf(`[stratumreq] eth_submitWork %s %s %s`, cs.ip, req.Method, req.Params)
 		if errReply != nil {
 			return cs.sendTCPError(req.Id, errReply)
 		}
@@ -195,7 +197,7 @@ func (s *ProxyServer) broadcastNewJobs() {
 	defer s.sessionsMu.RUnlock()
 
 	count := len(s.sessions)
-	log.Printf("Broadcasting new job to %v stratum miners", count)
+	log.Printf("Broadcasting new job to %v stratum miners, job: %v", count, reply)
 
 	start := time.Now()
 	bcast := make(chan int, 1024)

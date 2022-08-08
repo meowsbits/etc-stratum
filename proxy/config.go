@@ -33,6 +33,7 @@ type Config struct {
 }
 
 type Proxy struct {
+	Debug                bool   `json:"debug"`
 	Enabled              bool   `json:"enabled"`
 	Listen               string `json:"listen"`
 	LimitHeadersSize     int    `json:"limitHeadersSize"`
